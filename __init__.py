@@ -11,6 +11,7 @@ from psycopg2.extensions import connection
 import breadcord
 from breadcord.core_modules.module_manager import ModuleManager
 from breadcord.core_modules.settings_manager import Settings
+from data.modules.nebulus_manager.BaseCog import BaseModule
 
 
 class NebulusHandler(logging.Handler):
@@ -23,7 +24,6 @@ class NebulusHandler(logging.Handler):
             reason="Proper Webhook Config"
         ))
 
-
     def emit(self, record: logging.LogRecord) -> None:
         self.format(record)
 
@@ -32,7 +32,7 @@ class NebulusHandler(logging.Handler):
         ))
 
 
-class NebulusManager(breadcord.module.ModuleCog):
+class NebulusManager(BaseModule):
     def __init__(self, module_id: str, /):
         super().__init__(module_id)
 
@@ -89,6 +89,9 @@ class NebulusManager(breadcord.module.ModuleCog):
             elif spec == "^":
                 ctx.bot.tree.clear_commands(guild=ctx.guild)
                 await ctx.bot.tree.sync(guild=ctx.guild)
+            elif spec == "-":
+                ctx.bot.tree.clear_commands()
+                await ctx.bot.tree.sync()
             else:
                 await ctx.bot.tree.sync()
 
