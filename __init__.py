@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import random
 from typing import Literal, Optional
 
 import aiohttp
@@ -38,6 +39,7 @@ class NebulusManager(BaseModule):
 
         self.management_guild = discord.Object(self.settings.management_guild.value)
         self.activities = []
+        self._activity = None
 
         self.connection: connection = psycopg2.connect(
             user=self.settings.db_user.value,
@@ -49,13 +51,15 @@ class NebulusManager(BaseModule):
 
     @tasks.loop(seconds=30)
     async def switch_presence(self):
-        curr_activity = self.bot.activity
+        curr_activity = self._activity
         # default to the first activity if not set or invalid
         if curr_activity not in self.activities:
             await self.bot.change_presence(activity=self.activities[0])
+            self._activity = self.activities[0]
             return
         # use modulo to start from the beginning once the list is exhausted
         next_activity_index = (self.activities.index(curr_activity) + 1) % len(self.activities)
+        self._activity = self.activities[next_activity_index]
         await self.bot.change_presence(activity=self.activities[next_activity_index])
 
     async def cog_load(self) -> None:
@@ -108,6 +112,35 @@ class NebulusManager(BaseModule):
                 ret += 1
 
         await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
+
+    @commands.command()
+    @commands.is_owner()
+    async def add_status(self, ctx: commands.Context, *, status):
+        self.activities.append(discord.Activity(
+            type=discord.ActivityType.playing,
+            name=status
+        ))
+        await ctx.send(f"Appended status: `{status}`")
+
+    @commands.command()
+    @commands.is_owner()
+    async def list_status(self, ctx: commands.Context):
+        description = []
+        status_no = 0
+        for status in self.activities:
+            description.append(f"{status_no}. `{status.name}`")
+
+        embed = discord.Embed(
+            title="Status List",
+            description="\n".join(description)
+        )
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    @commands.is_owner()
+    async def remove_status(self, ctx: commands.Context, status_no: int):
+        self.activities.pop(status_no)
+        await ctx.send(f"Removed `{status_no}`")
 
 
 async def setup(bot: breadcord.Bot):
