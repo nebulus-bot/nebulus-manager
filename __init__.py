@@ -54,13 +54,19 @@ class NebulusManager(BaseModule):
         curr_activity = self._activity
         # default to the first activity if not set or invalid
         if curr_activity not in self.activities:
-            await self.bot.change_presence(activity=self.activities[0])
+            await self.bot.change_presence(activity=discord.CustomActivity(
+                name="Custom Status",
+                state=self.activities[0]
+            ))
             self._activity = self.activities[0]
             return
         # use modulo to start from the beginning once the list is exhausted
         next_activity_index = (self.activities.index(curr_activity) + 1) % len(self.activities)
         self._activity = self.activities[next_activity_index]
-        await self.bot.change_presence(activity=self.activities[next_activity_index])
+        await self.bot.change_presence(activity=discord.CustomActivity(
+            name="Custom Status",
+            state=self.activities[next_activity_index]
+        ))
 
     async def cog_load(self) -> None:
         self.logger.info("Loading core module `module_manager` with correct guild syncing")
@@ -78,10 +84,9 @@ class NebulusManager(BaseModule):
         self.logger.addHandler(NebulusHandler(self.bot))
         self.logger.info("Connected to discord log sync.")
 
-        self.activities.append(discord.Activity(
-            type=discord.ActivityType.watching,
-            name=f"{len(self.bot.guilds)} guild{'s' if len(self.bot.guilds) > 1 else ''} with {len(self.bot.users)} user{'s' if len(self.bot.users) > 1 else ''}"
-        ))
+        self.activities.append(
+            f"Watching {len(self.bot.guilds)} guild{'s' if len(self.bot.guilds) > 1 else ''} with {len(self.bot.users)} user{'s' if len(self.bot.users) > 1 else ''}"
+        )
         self.switch_presence.start()
 
     @commands.command("sync")
@@ -116,10 +121,7 @@ class NebulusManager(BaseModule):
     @commands.command()
     @commands.is_owner()
     async def add_status(self, ctx: commands.Context, *, status):
-        self.activities.append(discord.Activity(
-            type=discord.ActivityType.playing,
-            name=status
-        ))
+        self.activities.append(status)
         await ctx.send(f"Appended status: `{status}`")
 
     @commands.command()
